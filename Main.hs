@@ -17,6 +17,7 @@ import Diagrams.Backend.SVG
 import Diagrams.Prelude as D
 import Text.Blaze.Svg.Renderer.Utf8
 import Yesod
+import Diagram(diagram)
 
 data Store s a = Store (s -> a) s deriving Functor
 
@@ -44,7 +45,7 @@ grid = cat unitY . reverse . map (hcat . map cell) where
   cell b = unitSquare D.# fc (if b then black else white)
 
 svg :: Diagram SVG R2 -> Strict.ByteString
-svg = Strict.concat . Lazy.toChunks . renderSvg . renderDia SVG (SVGOptions (Width 400))
+svg = Strict.concat . Lazy.toChunks . renderSvg . renderDia SVG (SVGOptions (Width 600) Nothing)
  
 data App = App
 
@@ -55,6 +56,13 @@ mkYesod "App" [parseRoutes| / ImageR GET |]
 getImageR :: MonadHandler m => m TypedContent
 getImageR = sendResponse $ toTypedContent (typeSvg, toContent img) 
 
-img = svg . grid . map (window 49 0) . take 50 . loop (rule 110) $ Store (==0) (0 :: Int)
+-- img = lifeImg
+img = svg dia
+
+dia :: Diagram SVG R2 
+dia = Diagram.diagram 
+
+life :: Diagram SVG R2 
+life =  grid . map (window 49 0) . take 50 . loop (rule 110) $ Store (==0) (0 :: Int)
 
 main = warpEnv App
