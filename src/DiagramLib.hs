@@ -12,9 +12,6 @@ type QD b = QDiagram b R2 Any
 type QDTrans b = (BR2 b) => QD b -> QD b
 type QDCat b = (BR2 b) => [QD b] -> QD b
 
-type ModifyFn = forall b v m . (HasLinearMap v, InnerSpace v, Floating (Scalar v), Ord (Scalar v), Semigroup m) => 
-      (Subdiagram b v m -> QDiagram b v m -> QDiagram b v m) 
-
 -- Layout operations
 
 frame :: QDTrans b
@@ -34,3 +31,10 @@ catSnug snugFirst snugNext strut =
     foldl'
       (\acc new -> ((acc # centerXY # snugFirst) `atop` (new # centerXY # snugNext)))
       (strut 0)
+
+
+type ModifyFn = forall b v m . (HasLinearMap v, InnerSpace v, Floating (Scalar v), Ord (Scalar v), Semigroup m) => 
+      (Subdiagram b v m -> QDiagram b v m -> QDiagram b v m) 
+
+modifyByName :: (BR2 b, IsName n) => (n -> ModifyFn) -> [n] -> QDTrans b 
+modifyByName modifyFn names d = foldl' (\d name -> withName name (modifyFn name) d) d names

@@ -77,13 +77,9 @@ colorize :: QDTrans b
 colorize = modifyByName modifyFn cellLabels
                where modifyFn name = recolor (getColor (rows, maxCols) name)
 
-modifyByName :: (BR2 b, IsName n) => (n -> Subdiagram b R2 Any -> QD b -> QD b) -> [n] -> QDTrans b 
-modifyByName modifyFn names d = foldl' (\d name -> withName name (modifyFn name) d) d names
-            
+-- todo: make getColor more intelligent, use diagram context, and get colors in pairs (as calissons)
 getColor :: (Int,Int) -> (Double,Double)  -> Colour Double
 getColor = getHomeColor
-
--- distribute three colors arbitrarily
 
 homeColors :: M.Map (Double, Double) (Colour Double)
 homeColors = let s = fromIntegral gridSize in
