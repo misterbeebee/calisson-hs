@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Diagram(diagram) where
 
-import Math((/.), (**.), cartesianProduct)
+import Math((/.), (**.), cartesianProduct, l1dist)
 import Color(colorScale, cie)
 import DiagramLib
 import Diagrams.Backend.SVG
@@ -23,6 +23,7 @@ import Data.Default
 import Data.List
 import Data.Map((!))
 import qualified Data.Map as M
+
 
 gridSize = 5
 rows = 4*gridSize-1
@@ -59,8 +60,8 @@ gridList = zip (fenceposts rows) $ concat [
   zip (repeat 0) (fmap (\x -> 2*x) (reverse [1..gridSize]))
   ]
 
--- turn down opacity when not debuggin
-mkLabel row col = scale 0.2 . opacity 0.2 text $ shows (round $ 2*row) (',' : show (round $ 2*col))
+-- turn down opacity when not debugging
+mkLabel row col = scale 0.2 . opacity 0.0 text $ shows (round $ 2*row) (',' : show (round $ 2*col))
 
 -- fixme
 recolor :: Colour Double -> ModifyFn
@@ -98,21 +99,11 @@ getHomeColor _ cell@(row, col) =
     snd $ foldl1WithKey
         (\(nearest, ncolor) corner ccolor ->  
             -- fixme ugh
-            if dist fcell corner < dist fcell nearest
+            if l1dist fcell corner < l1dist fcell nearest
             then (corner, ccolor)
             else (nearest, ncolor))
         homeColors
 
-
-dist a b = norm (a-b)
-
-norm :: (Double, Double) -> Double
-norm (x,y) = abs(x) + abs(y)
-
-sqr x = x * x
-
-toF :: (Int, Int) -> (Double, Double)
-toF (a,b) = (fromIntegral a, fromIntegral b)
 
 foldl1WithKey :: ((k,v) -> k -> v -> (k,v)) -> M.Map k v -> (k,v)
 foldl1WithKey f m =  M.foldlWithKey f (head . M.toList $ m) m
