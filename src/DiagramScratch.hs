@@ -3,8 +3,8 @@ module DiagramScratch where
 -- scratch functions not used in main program
 
 import Diagram
-import Math((/.), (**.))
-import Color(colorScale)
+import Core.Math((/.), (**.))
+import Data.Color(colorScale)
 
 import Diagrams.Prelude
 

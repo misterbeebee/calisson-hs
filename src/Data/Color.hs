@@ -1,4 +1,4 @@
-module Color where
+module Data.Color where
 
 import Data.Colour.CIE
 import Data.Colour.CIE.Illuminant(d65)
