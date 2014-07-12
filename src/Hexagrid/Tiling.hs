@@ -17,7 +17,7 @@ import           Hexagrid.Grid
 import           Hexagrid.Hexacycle
 import           Hexagrid.Path
 import           Hexagrid.TriangleCell
- 
+
 type PositionToColor = Map ColorCode
 
 -- hacky int representation
