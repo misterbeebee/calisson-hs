@@ -25,6 +25,6 @@ safeRadius input =
 
 safeShuffles :: Input -> Int
 safeShuffles input =
-    let safe = clampToRange (0,maxShuffles) . fromMaybe 0 . inputShuffles $ input in
+    let safe = clampToRange (0,maxShuffles) . fromMaybe 10 . inputShuffles $ input in
     T.trace ("input shuffles " ++ show (inputShuffles input) ++ " -> " ++ show safe) $
     safe
