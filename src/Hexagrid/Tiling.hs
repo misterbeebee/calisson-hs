@@ -89,7 +89,7 @@ usableCycle spec ps ptoc =
   all (usable spec) hexagon
       -- Our "upper-left corner, PointingLeft" convention means that only 'red' and 'blue' corners are valid
       && (
-        -- T.trace ("hexagonColors : " ++ show hexagonColors) $
+         T.trace ("hexagonColors : " ++ show hexagonColors) $
           (hexagonColors !! 0) `elem` [Red, Blue])
       && wellCycledColors hexagonColors
 
