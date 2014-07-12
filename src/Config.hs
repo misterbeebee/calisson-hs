@@ -7,7 +7,7 @@ import Hexagrid.Grid
 
 --- input, defaults, and limits
 
-maxShuffles = 500
+maxShuffles = 200
 
 data Input = Input {
     inputRadius :: Maybe Int,

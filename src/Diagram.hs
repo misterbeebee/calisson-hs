@@ -30,6 +30,7 @@ import           Hexagrid.Tiling
 
 import qualified Debug.Trace               as DTrace
 
+-- fixme move to Config
 -- turn down opacity when not debugging
 labelOpacity = 0.0 
 
@@ -64,7 +65,7 @@ recolor c cell dia = (getSub cell # fc (colorValue c) # opacity 0.7)  <> dia
 colorize :: Spec source -> QDTrans b
 colorize spec =
     -- manually lift pToC out of the 'where' clause, or else GHC will recompute it for every position!
-    let pToC = theColorization spec in
+    let pToC = applyATiling spec in
     modifyByName (modifyFn pToC) (cellPositionList spec)
     where
         modifyFn pToC position = recolor (getColor pToC (rows spec, maxCols spec) position)
