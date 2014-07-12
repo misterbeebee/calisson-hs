@@ -10,7 +10,7 @@ instance Show bit => Show (Entropy bit source) where
 currEntropyBit (Entropy ev curr _) = curr ev
 nextEntropy (Entropy ev curr next) = Entropy (next ev) curr next
 
-maxTries = 15
+maxTries = 50
 
 -- Feeds a stream of "random/arbitrary" data to a function (that can fail)
 -- retries function (with new entropic value) if it fails
@@ -28,8 +28,11 @@ withEntropyAndRetry f (a,e) =
             (a, nextEntropy e)
         keepTrying triesLeft e f a =
           -- T.trace ("keepTrying: " ++ show e) $
-          case f (currEntropyBit e) a of
+          let bit = (currEntropyBit e) in
+          case f bit a of
             Nothing ->
-                 -- T.trace ("retry with entropy: " ++ show e)
+                 -- T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " with entropy: " ++ show bit)
                  keepTrying  (pred triesLeft) (nextEntropy e) f a
-            Just fresult -> (fresult, nextEntropy e)
+            Just fresult -> 
+                T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " succeeded" )
+                (fresult, nextEntropy e)

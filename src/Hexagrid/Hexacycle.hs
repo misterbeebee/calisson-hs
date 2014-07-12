@@ -9,8 +9,8 @@ import qualified Debug.Trace as T
 naturalFirstStep :: TriangleOrientation -> Step
 naturalFirstStep orient =
     case orient of
-        PointingLeft -> (Green, Blue)
-        PointingRight -> (Blue, Green)
+        PointingLeft -> (GreenCorner, BlueCorner)
+        PointingRight -> (BlueCorner, GreenCorner)
 
 cyclePathPositions :: TriangleOrientation -> Position -> [Position]
 cyclePathPositions triOrient initial =
@@ -41,7 +41,7 @@ naturalCycleOrientationFor orientation =
 succCycleStep :: Orientation -> Step -> Step
 succCycleStep orient s@(x,y) =
     -- math hack to find "other" Corner
-    let enumTotal = fromEnum Red + fromEnum Blue + fromEnum Green in
+    let enumTotal = fromEnum RedCorner + fromEnum BlueCorner + fromEnum GreenCorner in
     let z = toEnum $ enumTotal - (fromEnum y + fromEnum x)  in
     -- todo: use a lens-ish thing to make this clean
     -- Star at the diagram to understand why this works :-/

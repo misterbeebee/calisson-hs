@@ -51,9 +51,9 @@ homeBaseColors spec = M.fromList $ map (posToInt &&& getHomeBaseColor spec) $ ce
 homeColors :: Spec source -> PositionToColor
 homeColors spec = let s = fromIntegral (gridRadius spec) in
   M.fromList . map (first posToInt) $ [
-          ((-(4*s), 0) , red)
-        , ((2*s, -2*s), green) -- todo, use `rows` instead of `size` ?
-        , ((2*s, 2*s), blue)
+          ((-(4*s), 0) , Red)
+        , ((2*s, -2*s), Green) -- todo, use `rows` instead of `size` ?
+        , ((2*s, 2*s), Blue)
         ]
 
 getHomeBaseColor :: Spec source -> Position -> ColorCode
@@ -78,18 +78,20 @@ shuffleOnce spec entropyForCellIndex pToC =
     -- Our convention is to use the upper-left corner as the starting-point, 
     -- so only PointingLeft triangles are valid
     let cellIndex = (entropyForCellIndex `mod` numCells spec) in
-    let cellOrientation = (mget cellIndex theCellOrientations) in
+    let orientation = (mget cellIndex theCellOrientations) in
+    let pos = (mget cellIndex theCellPositions) in
     -- T.trace ("shuffleOnce: " ++ show cellIndex) $
     -- T.trace "desired orientation" $
-    let cpp = cyclePathPositions cellOrientation (mget cellIndex theCellPositions) in
+    let cpp = cyclePathPositions orientation pos in
     -- determine which triangles to include in unit-hexagon, from orientation and color of current position 
     -- if on a hexagon with 3 diff color, reflect colors across center of hexagon.
-    if (cellOrientation == PointingLeft) && usableCycle spec cpp pToC
+    if (orientation == PointingLeft) && usableCycle spec cpp pToC
     then
+      T.trace ("yep: " ++ show pos) $
       let hexagon = take 6 (zip cpp  (drop 3 cpp)) :: [(Position, Position)] in
       Just $ foldl' (flip ($)) pToC (map (copyColorFrom pToC) hexagon) 
     else
-      -- T.trace ("nope: " ++ show pos)
+       T.trace ("nope: " ++ show pos)
       Nothing
 
 -- warning: cyclic!
@@ -103,6 +105,8 @@ usableCycle spec ps ptoc =
   let colorNub = nub hexagonColors in
   -- DTrace.trace ("hexagon : " ++ show  hexagon) $
   all (usable spec) hexagon
+      -- Our "upper-left corner, PointingLeft" convention means that only 'red' and 'blue' corners are valid 
+      && (hexagonColors !! 0) `elem` [Red, Blue]
       && wellCycledColors hexagonColors
 
 -- adjacent colors are same/diff/... around cycle

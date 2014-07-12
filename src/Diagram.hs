@@ -6,7 +6,7 @@ module Diagram(diagram) where
 import           Control.Arrow             ((&&&))
 import           Core.Math                 (cartesianProduct, l1dist, (**.),
                                             (/.))
-import           Data.Color                (ColorCode, cie, colorScale)
+import           Data.Color                (ColorCode, cie, colorScale, colorValue)
 import           Data.Colour.RGBSpace
 import           Data.Colour.SRGB.Linear
 import           Data.Default
@@ -57,7 +57,7 @@ mkLabel row col = scale 0.2 . opacity labelOpacity text $ shows row (',' : show 
 
 -- fixme
 recolor :: ColorCode -> ModifyFn
-recolor c cell dia = (getSub cell # fc c # opacity 0.7)  <> dia
+recolor c cell dia = (getSub cell # fc (colorValue c) # opacity 0.7)  <> dia
 
 -- fixme: awful hack! copy each named subdiagram (which fortunately does not copy the name),
 -- and put a colored version `atop` it

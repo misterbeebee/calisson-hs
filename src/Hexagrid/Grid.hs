@@ -113,13 +113,13 @@ pseudoRandomCell spec curr =
 
 
 
-data Corner = Red | Green | Blue -- 0 | 1 | 2
+data Corner = RedCorner | GreenCorner | BlueCorner -- 0 | 1 | 2
   deriving (Eq, Enum, Show) -- not Ord, because we want to think cyclically!
 
 type UnitVector = (Corner, Corner)
-redToGreen  = (Red, Green)
-greenToBlue  = (Green, Blue)
-blueToRed  = (Blue, Red)
+redToGreen  = (RedCorner, GreenCorner)
+greenToBlue  = (GreenCorner, BlueCorner)
+blueToRed  = (BlueCorner, RedCorner)
 
 -- todo, change to 'data', and adjust math
 type SignBit = Int -- -1 | 1

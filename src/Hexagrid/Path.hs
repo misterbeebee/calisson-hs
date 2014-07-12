@@ -38,7 +38,7 @@ move pos@(r,c) step =
     -- these formulas are weird, because they are
     -- (a) on the rectangular coordinate grud
     -- (b) they are only valid when moving to an edge-adjacent triangle
-    (Red, Green) -> (r + sign*2, c)
-    (Green, Blue) -> (r, c+ sign*2)
-    (Blue, Red)-> (r - sign*2, c)
+    (RedCorner, GreenCorner) -> (r + sign*2, c)
+    (GreenCorner, BlueCorner) -> (r, c+ sign*2)
+    (BlueCorner, RedCorner)-> (r - sign*2, c)
     _ -> T.trace ("Error: non-unit vector! " ++ show step) (r,c)
