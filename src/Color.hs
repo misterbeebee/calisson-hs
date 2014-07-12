@@ -3,6 +3,8 @@ module Color where
 import Data.Colour.CIE
 import Data.Colour.CIE.Illuminant(d65)
 
+type ColorCode = Colour Double
+
 -- medium lightness CIELAB color
 cie = cieLAB d65 50
 

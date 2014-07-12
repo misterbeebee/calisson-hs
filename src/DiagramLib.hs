@@ -14,8 +14,8 @@ type QDCat b = (BR2 b) => [QD b] -> QD b
 
 -- Layout operations
 
-frame :: QDTrans b
-frame = padX 1.1 . padY 1.1 . centerXY
+myframe :: QDTrans b
+myframe = padX 1.1 . padY 1.1 . centerXY
 
 --pack horizontally, with no gaps. Assumes adjacent components have parallel edges
 hcatSnug :: QDCat b
