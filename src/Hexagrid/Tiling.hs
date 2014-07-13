@@ -10,6 +10,7 @@ import qualified Data.IntMap           as M
 import qualified Data.IntSet           as IntSet
 import           Data.List             (foldl')
 import           Data.List             (nub)
+import           Data.Maybe             (isJust)
 import           Data.MapUtil          (Map, mget)
 import           Data.MapUtil          (Map, foldl1WithKey, getValues, mget)
 import qualified Debug.Trace           as T
@@ -44,15 +45,25 @@ mkUsableHexagons orientations pToCM =
     IntSet.filter
         (\posInt ->
             let orientation = mget posInt orientations in 
-            let hexacycle = cyclePathPositions orientation (intToPos posInt) in
-            isUsable orientation hexacycle pToCM)
+            isJust (getHexacycleIfUsable orientation (intToPos posInt) pToCM))
         (M.keysSet pToCM)
 
-updateUsableHexagons ::  Tiling -> [Position] -> IntSet.IntSet
-updateUsableHexagons old changedPositions =
-    T.trace "FIXME: implement updateUsableHexagon ! " $
-    undefined -- fixme: do something with positionToColorUsableHexagons old
+-- A Hexacycle's position is just the position of its top-left corner.
+type HexacyclePosition = Position
 
+updateUsableHexagons ::  Map TriangleOrientation -> PositionToColorMap -> IntSet.IntSet -> [HexacyclePosition] -> IntSet.IntSet
+updateUsableHexagons cellOrientations newColorization oldUsableHexagons changedPositions =
+    let changedHexacylePositions = concatMap overlappingHexacycles $ changedPositions in
+    foldl' go oldUsableHexagons changedHexacylePositions 
+    where
+        go oldUsableHexagons pos =
+          let update = case getHexacycleIfUsable (mpmget pos cellOrientations) pos newColorization of
+                         Nothing -> IntSet.delete 
+                         Just _ -> IntSet.insert
+          in
+          update (posToInt pos) oldUsableHexagons
+
+overlappingHexacycles = T.trace "implement overlappingHexacylces FIXME!" undefined
 
 -- map of positions to position's  colors
 mkCanonicalTiling :: PositionToColorMap -> [Position] -> PositionToColorMap
@@ -114,28 +125,28 @@ shuffleOnce spec entropyForCellIndex pToC =
     let pos = (mget cellIndex theCellPositions) in
     -- T.trace ("shuffleOnce: " ++ show cellIndex) $
     let orientation = (mget cellIndex theCellOrientations) in
-    let hexacycle = cyclePathPositions orientation pos in
     let pToCM = (positionToColorMap pToC) in
-    if
-      isUsable orientation hexacycle pToCM
-    then
-      T.trace ("yep: " ++ show pos) $
-      let hexagonPositions = take 6 hexacycle in
-      let hexagonOpposites = take 6 (zip hexacycle (drop 3 hexacycle)) in
-      let prevUsableHexagons = (positionToColorUsableHexagons pToC) in
-      Just $ Tiling
-                (foldl' (flip ($)) pToCM (map (copyColorFrom pToCM) hexagonOpposites))
-                (updateUsableHexagons pToC hexagonPositions)
-    else
-      -- T.trace ("nope: " ++ show pos)
-      Nothing
+    case getHexacycleIfUsable orientation pos pToCM of
+      Just hexacycle -> 
+        T.trace ("yep: " ++ show pos) $
+        let hexagonPositions = take 6 hexacycle in
+        let hexagonOpposites = take 6 (zip hexacycle (drop 3 hexacycle)) in
+        let prevUsableHexagons = (positionToColorUsableHexagons pToC) in
+        let newPToCM = (foldl' (flip ($)) pToCM (map (copyColorFrom pToCM) hexagonOpposites)) in
+        Just $ Tiling newPToCM (updateUsableHexagons theCellOrientations newPToCM prevUsableHexagons hexagonPositions)
+      Nothing ->
+          T.trace ("nope: " ++ show pos) $
+          Nothing
 
-isUsable :: TriangleOrientation -> [Position] -> PositionToColorMap -> Bool
-isUsable orientation hexacycle pToC =
-      -- determine which triangles to include in unit-hexagon, from orientation and color of current position
+getHexacycleIfUsable :: TriangleOrientation -> HexacyclePosition -> PositionToColorMap -> Maybe [Position]
+getHexacycleIfUsable orientation pos pToC =
+      -- determine which triangles to include in unit-hexagon
       -- if on a hexagon with 3 diff color, reflect colors across center of hexagon.
       -- T.trace ("orient: " ++ show orientation) $
-      (orientation == PointingLeft) && usableCycle hexacycle pToC
+      let hexacycle = cyclePathPositions orientation pos in
+      if (orientation == PointingLeft) && usableCycle hexacycle pToC
+      then Just hexacycle
+      else Nothing
 
 -- warning: cyclic!
 usableCycle :: [Position] -> PositionToColorMap -> Bool
@@ -165,4 +176,4 @@ wellCycledColors' n (x1:x2:xs) parity =
     ((x1 == x2) == not parity) && wellCycledColors' (n-1) (x2:xs) (not parity)
 
 isValidPosition :: Eq a => Map a -> Position -> Bool
-isValidPosition validPositionSet p = (Nothing /=) $ M.lookup (posToInt p) validPositionSet
+isValidPosition validPositionSet p = isJust $ M.lookup (posToInt p) validPositionSet
