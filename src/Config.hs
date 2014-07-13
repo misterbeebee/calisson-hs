@@ -7,7 +7,7 @@ import Hexagrid.Grid
 
 --- input, defaults, and limits
 
-maxShuffles = 200
+maxShuffles = 1000
 maxRadius = 10
 
 data Input = Input {
