@@ -22,9 +22,9 @@ import           Hexagrid.TriangleCell
 
 -- fixme improve these names
 mpget k pToC = mget (posToInt k) (positionToColorMap pToC)
-mpmget k pToCM = mget (posToInt k) pToCM
+mpmget k posIntMap = mget (posToInt k) posIntMap
 mpinsert k v pToC =  M.insert (posToInt k) v (positionToColorMap pToC)
-mpminsert k v pToC =  M.insert (posToInt k) v pToC
+mpminsert k v posIntMap =  M.insert (posToInt k) v posIntMap
 
 type PositionToColorMap = Map ColorCode
 
@@ -51,20 +51,46 @@ mkUsableHexagons orientations pToCM =
 -- A Hexacycle's position is just the position of its top-left corner.
 type HexacyclePosition = Position
 
-updateUsableHexagons ::  Map TriangleOrientation -> PositionToColorMap -> IntSet.IntSet -> [HexacyclePosition] -> IntSet.IntSet
+type PositionSet = IntSet.IntSet
+type HexacyclePositionSet = PositionSet
+
+posToIntFlattenAndDedup :: [[Position]] -> [Int]
+posToIntFlattenAndDedup = IntSet.toList .
+    foldl' (\set poss -> foldl' (\set pos -> IntSet.insert (posToInt pos) set)
+                                set
+                                poss)
+           IntSet.empty 
+
+updateUsableHexagons ::  Map TriangleOrientation -> PositionToColorMap -> HexacyclePositionSet -> [HexacyclePosition] -> HexacyclePositionSet
 updateUsableHexagons cellOrientations newColorization oldUsableHexagons changedPositions =
-    let changedHexacylePositions = concatMap overlappingHexacycles $ changedPositions in
-    foldl' go oldUsableHexagons changedHexacylePositions 
+    let getOverlappingHexacycles pos = overlappingHexacycles pos (mpmget pos cellOrientations)  newColorization in
+    let overlappingHexacylePosInts = posToIntFlattenAndDedup (map getOverlappingHexacycles changedPositions) in
+    foldl' go oldUsableHexagons overlappingHexacylePosInts
     where
-        go oldUsableHexagons pos =
-          let update = case getHexacycleIfUsable (mpmget pos cellOrientations) pos newColorization of
+        go oldUsableHexagons posInt =
+          let update = case getHexacycleIfUsable (mget posInt cellOrientations) (intToPos posInt) newColorization of
                          Nothing -> IntSet.delete 
                          Just _ -> IntSet.insert
           in
-          update (posToInt pos) oldUsableHexagons
+          update posInt oldUsableHexagons
 
-overlappingHexacycles = T.trace "implement overlappingHexacylces FIXME!" undefined
 
+-- validPositions for its keys
+overlappingHexacycles :: Position -> TriangleOrientation -> Map a -> [Position]
+overlappingHexacycles pos orientation validPositions =
+  let paths = case orientation of
+              -- paths to hexacycle-positions determined by inspecting a diagram
+              PointingLeft ->
+                [[],
+                [blueToRed, blueToGreen],
+                [blueToRed, greenToRed]]
+              PointingRight ->
+                [[greenToRed, blueToRed, blueToGreen], -- equivalent to bg,br,gr
+                [greenToRed],
+                [blueToGreen]]
+  in
+  filter (isValidPosition validPositions) (map (walk' pos) paths) 
+   
 -- map of positions to position's  colors
 mkCanonicalTiling :: PositionToColorMap -> [Position] -> PositionToColorMap
 mkCanonicalTiling cornerColors cellPositionList =
@@ -175,5 +201,5 @@ wellCycledColors' 0 xs _ = True
 wellCycledColors' n (x1:x2:xs) parity =
     ((x1 == x2) == not parity) && wellCycledColors' (n-1) (x2:xs) (not parity)
 
-isValidPosition :: Eq a => Map a -> Position -> Bool
+isValidPosition :: Map a -> Position -> Bool
 isValidPosition validPositionSet p = isJust $ M.lookup (posToInt p) validPositionSet

@@ -126,22 +126,3 @@ pseudoRandomCell spec curr =
 
 
 
-data Corner = RedCorner | GreenCorner | BlueCorner -- 0 | 1 | 2
-  deriving (Eq, Enum, Show) -- not Ord, because we want to think cyclically!
-
-type UnitVector = (Corner, Corner)
-redToGreen  = (RedCorner, GreenCorner)
-greenToBlue  = (GreenCorner, BlueCorner)
-blueToRed  = (BlueCorner, RedCorner)
-
--- todo, change to 'data', and adjust math
-type SignBit = Int -- -1 | 1
-
-data Orientation = Zero | Unit | Anti
- deriving (Enum, Eq, Show) -- not Ord
-
-toTrit o = case o of
-    Zero -> 0
-    Unit -> 1
-    Anti -> -1
-
