@@ -171,7 +171,7 @@ shuffleOnce spec entropyForCellIndex tiling =
         -- rendundant check oh usability, but good for validating computations
         case getHexacycleIfUsable orientation pos pToCM of
           Just hexacycle -> 
-            T.trace ("yep: " ++ show pos) $
+           -- T.trace ("yep: " ++ show pos) $
             let hexagonPositions = take 6 hexacycle in
             let hexagonOpposites = take 6 (zip hexacycle (drop 3 hexacycle)) in
             let prevUsableHexagons = (tilingUsableHexagons tiling) in
