@@ -8,6 +8,7 @@ import Hexagrid.Grid
 --- input, defaults, and limits
 
 maxShuffles = 200
+maxRadius = 10
 
 data Input = Input {
     inputRadius :: Maybe Int,
@@ -19,12 +20,12 @@ thePositionEntropy = prandPositionEntropy
 
 safeRadius :: Input -> Int
 safeRadius input =
-    let safe = clampToRange (1,5) . fromMaybe 5 . inputRadius $ input in
+    let safe = clampToRange (1,maxRadius) . fromMaybe 6 . inputRadius $ input in
     T.trace ("input radius " ++ show (inputRadius input) ++ " -> " ++ show safe) $
         safe
 
 safeShuffles :: Input -> Int
 safeShuffles input =
-    let safe = clampToRange (0,maxShuffles) . fromMaybe 10 . inputShuffles $ input in
+    let safe = clampToRange (0,maxShuffles) . fromMaybe 60 . inputShuffles $ input in
     T.trace ("input shuffles " ++ show (inputShuffles input) ++ " -> " ++ show safe) $
     safe
