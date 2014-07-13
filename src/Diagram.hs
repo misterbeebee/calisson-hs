@@ -36,36 +36,33 @@ labelOpacity = 0.0
 -- Needs Renderable Text and Renderable Path, so just hardcode SVG
 diagram :: Spec source -> QD SVG
 diagram spec =
+    let pToC = positionToColorMap (applyATiling spec) in
     DTrace.trace "Building diagram" $
     myframe .
-    colorize spec .
     vcatSnug $
     map
        (\(row, (rowStartOrientation, cols)) -> hcatSnug $
                 -- add name for indexing
                 -- add label as visual aid
-                zipWith (\col tri -> named (toName (row, col)) (mkLabel row col <> tri))
-                        (fenceposts cols)
-                . take cols . drop (fromEnum rowStartOrientation) . cycle
-                $ fmap ($ triangle 1 # lineWidth 0) [rotateBy (1/4), rotateBy (-1/4)]
+                zipWith (\col colIndex -> 
+                            let pos = (row,col) in
+                            let rotation = (1/4) * bitToSign (fromEnum rowStartOrientation + colIndex) in
+                            mkLabel pos <>
+                            triangle 1
+                              # named (toName pos)
+                              # (rotateBy rotation)
+                              # lineWidth 0 # (setColor pToC pos))
+                    (fenceposts cols) [0..]
        ) theGridList
   where
     theGridList = gridList spec
-    rows = length theGridList
 
-mkLabel row col = scale 0.2 . opacity labelOpacity text $ shows row (',' : show col)
+mkLabel pos = scale 0.2 . opacity labelOpacity text $ show pos
 
--- fixme
-recolor :: ColorCode -> ModifyFn
-recolor c cell dia = (getSub cell # fc (colorValue c) # opacity 0.7)  <> dia
-
--- fixme: awful hack! copy each named subdiagram (which fortunately does not copy the name),
--- and put a colored version `atop` it
-colorize :: Spec source -> QDTrans b
-colorize spec =
-    -- manually lift pToC out of the 'where' clause, or else GHC will recompute it for every position!
-    let pToC = positionToColorMap (applyATiling spec) in
-    modifyByName (modifyFn pToC) (map intToPos . M.keys $ pToC)
-    where
-        modifyFn pToC position = recolor (getColor pToC (rows spec, maxCols spec) position)
-
+setColor pToC pos =
+    let colorCode = (getColor pToC pos) in
+    fc (colorValue colorCode) # opacity 0.7
+ 
+bitToSign x = case x `mod` 2 of
+  0 -> 1
+  1 -> -1

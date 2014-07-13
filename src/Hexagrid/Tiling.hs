@@ -125,10 +125,8 @@ mkCornerColors radius = let s = fromIntegral radius in
         , ((2*s, 2*s), Blue)
         ]
 
-
-getColor :: PositionToColorMap -> (Int,Int) -> Position  -> ColorCode
--- getColor = getCornerColor
-getColor pToC _ position = mpmget position pToC
+getColor :: PositionToColorMap -> Position  -> ColorCode
+getColor pToC position = mpmget position pToC
 
 applyATiling :: Spec source -> Tiling
 applyATiling spec = shuffleColors spec $ initialTiling spec
