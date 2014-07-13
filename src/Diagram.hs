@@ -31,7 +31,7 @@ import qualified Debug.Trace               as DTrace
 
 -- fixme move to Config
 -- turn down opacity when not debugging
-labelOpacity = 0.2 
+labelOpacity = 0.0 
 
 -- Needs Renderable Text and Renderable Path, so just hardcode SVG
 diagram :: Spec source -> QD SVG
