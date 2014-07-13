@@ -1,14 +1,13 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Hexagrid.Grid where
 -- Calisson's 3-region Hexagon grid
-import           Control.Arrow         (first, (&&&))
-import           Data.MapUtil          (Map, foldl1WithKey, getValues, mget)
+import           Control.Arrow         (first, (|||), (&&&))
+import           Data.MapUtil          (Map, foldl1WithKey, getValues)
 import           Data.Bits             (shiftL, shiftR, (.&.))
 import           Data.Color
 import           Data.Entropy
 import qualified Data.IntMap           as M
 import qualified Data.IntSet           as IntSet
-import           Data.MapUtil          (Map, foldl1WithKey, getValues, mget)
 import qualified Debug.Trace           as T
 import           Hexagrid.TriangleCell
 
@@ -18,9 +17,25 @@ type RowOrColId = Int -- even signed integer
 type Position = (RowId, ColId)
 
 -- hacky int representation of Position
-posToInt (r,c) = (shiftL (abs r) 16) + (shiftL (abs c) 2) + ((1 - signum r)) + (shiftR (1 - signum c) 1)
-intToPos i = ((shiftR i 16) * (1 - (i .&. 0x2)),
-              (shiftR (i .&. 0xfffb) 2) * (1 - shiftL (i .&. 0x1) 1))
+posToInt (r,c) =
+    let sr = signum r in
+    let sc = signum c in
+    -- extra multiplication by signum  makes 0 go to 0 sign bit
+    let i = (shiftL (abs r) 16) + (shiftL (abs c) 2) + (sr*sr*(1 - sr)) + (shiftR (sc*sc*(1 - sc)) 1) in
+    -- T.trace ("posToInt " ++ show (r,c) ++ " -> " ++ show i)
+    i
+             
+intToPos i =
+    let p = ((shiftR i 16) * (1 - (i .&. 0x2)), (shiftR (i .&. 0xfffc) 2) * (1 - shiftL (i .&. 0x1) 1)) in
+    -- T.trace ("intToPos " ++ show i ++ " -> " ++ show p)
+    p
+
+-- unsafe lookup
+mget :: Int -> Map v -> v
+mget k m =
+    case M.lookup k m of
+      Nothing -> error ("Lookup failed!!! for key" ++ (show $ intToPos k))
+      (Just v) -> v
 
 
 -- FIXME: this is a total misnomer
@@ -33,10 +48,8 @@ data Spec a = Spec {
         maxCols                      :: !Int,
         minCols                      :: !Int,
         gridList                     :: ![(RowId, (TriangleOrientation, Int))],
-        cellPositionsWithOrientation :: Map (Position, TriangleOrientation),
-        cellPositions                :: Map Position,
-        cellOrientations             :: Map TriangleOrientation,
-        cellPositionList             :: [Position],
+        enumeratedPositionsWithOrientation :: Map (Position, TriangleOrientation), -- key  is [0...numCels]
+        orientations                 :: Map TriangleOrientation, -- key is posInt
         numCells                     :: !Int
         -- FIXME: should be in Tiling
         }
@@ -45,18 +58,21 @@ data Spec a = Spec {
 mkSpec radius shuffles entropy =
     let rows = mkRows radius in
     let gridList = mkGridList radius rows in
-    let cellPositionsWithOrientation = mkCellPositionsWithOrientation gridList in
-    let cellPositions = fmap fst cellPositionsWithOrientation in
-    let cellPositionList = (getValues cellPositions) in
+    let positionsWithOrientation = mkCellPositionsWithOrientation gridList in
+    let
+      cellOrientations = M.fromList
+        . fmap ((\(pos,orient) -> (posToInt pos, orient)) . snd)
+        . M.toList $ positionsWithOrientation in
+    -- T.trace ("pwo keys " ++ show positionsWithOrientation) $
+    -- T.trace ("orientation keys int" ++ (show $ M.keys (cellOrientations))) $
+    -- T.trace ("orientation keys pos " ++ (show $ map intToPos (M.keys (cellOrientations)))) $
     Spec radius shuffles entropy rows
         (mkMaxCols radius)
         (mkMinCols radius)
         gridList
-        cellPositionsWithOrientation
-        cellPositions
-        (fmap snd cellPositionsWithOrientation)
-        cellPositionList
-        (M.size cellPositions)
+        positionsWithOrientation 
+        cellOrientations
+        (M.size cellOrientations)
 
 mkRows :: Int -> Int
 mkRows radius = 4* radius - 1
@@ -110,18 +126,14 @@ scriptPositionEntropy = let x = Entropy 7 id (+17) in
 
 -- simulates a random stream of data
 -- fixme make it more interesting
-prandPositionEntropy :: Spec source -> Entropy Int Int
-prandPositionEntropy spec =
-    let x = Entropy 0 id (pseudoRandomCell spec) in
+prandPositionEntropy :: Entropy Int Int
+prandPositionEntropy =
+    let x = Entropy 0 id (pseudoRandom) in
     -- DTrace.trace ("seedPositionEntropy: " ++ show x)
     x
 
 
-pseudoRandomCell spec curr =
-    let theNumCells = numCells spec in
-    let cellIndex = (curr * 52237 + 317981) `mod` theNumCells in
-    -- DTrace.trace ("pseudoRandomCell: " ++ show (mget cellIndex cellPositions )) $
-    cellIndex
+pseudoRandom curr = (curr * 52237 + 317981) `mod` (shiftL 2 20)
 
 
 

@@ -14,8 +14,8 @@ data Input = Input {
     inputShuffles :: Maybe Int
 }
 
--- thePositionEntropy = prandPositionEntropy
-thePositionEntropy = scriptPositionEntropy
+thePositionEntropy = prandPositionEntropy
+-- thePositionEntropy = scriptPositionEntropy
 
 safeRadius :: Input -> Int
 safeRadius input =

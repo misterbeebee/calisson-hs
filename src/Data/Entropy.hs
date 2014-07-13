@@ -31,8 +31,9 @@ withEntropyAndRetry f (a,e) =
           let bit = (currEntropyBit e) in
           case f bit a of
             Nothing ->
-                 -- T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " with entropy: " ++ show bit)
-                 keepTrying  (pred triesLeft) (nextEntropy e) f a
+              -- should never happen in Calissons, now that we are maintaing hexagon set
+              T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " with entropy: " ++ show bit)
+              keepTrying  (pred triesLeft) (nextEntropy e) f a
             Just fresult -> 
-                T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " succeeded" )
-                (fresult, nextEntropy e)
+              -- T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " succeeded" )
+              (fresult, nextEntropy e)

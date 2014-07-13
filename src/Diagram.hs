@@ -12,9 +12,8 @@ import           Data.Colour.SRGB.Linear
 import           Data.Default
 import           Data.Entropy
 import           Data.List
-import           Data.Map                  ((!))
-import qualified Data.Map                  as M
-import           Data.MapUtil              (foldl1WithKey, mget)
+import qualified Data.IntMap                  as M
+import           Data.MapUtil              (foldl1WithKey)
 import           DiagramLib
 import           Diagrams.Backend.SVG
 import           Diagrams.Color.HSV
@@ -32,7 +31,7 @@ import qualified Debug.Trace               as DTrace
 
 -- fixme move to Config
 -- turn down opacity when not debugging
-labelOpacity = 0.0 
+labelOpacity = 0.2 
 
 -- Needs Renderable Text and Renderable Path, so just hardcode SVG
 diagram :: Spec source -> QD SVG
@@ -66,7 +65,7 @@ colorize :: Spec source -> QDTrans b
 colorize spec =
     -- manually lift pToC out of the 'where' clause, or else GHC will recompute it for every position!
     let pToC = positionToColorMap (applyATiling spec) in
-    modifyByName (modifyFn pToC) (cellPositionList spec)
+    modifyByName (modifyFn pToC) (map intToPos . M.keys $ pToC)
     where
         modifyFn pToC position = recolor (getColor pToC (rows spec, maxCols spec) position)
 
