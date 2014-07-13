@@ -12,6 +12,7 @@ naturalFirstStep orient =
         PointingLeft -> (GreenCorner, BlueCorner)
         PointingRight -> (BlueCorner, GreenCorner)
 
+-- generates cyclic/infinite list!
 cyclePathPositions :: TriangleOrientation -> Position -> [Position]
 cyclePathPositions triOrient initial =
     let x = pathPositionsFromSteps
@@ -21,7 +22,7 @@ cyclePathPositions triOrient initial =
     x
 
 
-
+-- generates cyclic/infinite list!
 cyclePathSteps :: Step -> Orientation -> [Step]
 cyclePathSteps initial orient =
     let steps = iterate (succCycleStep orient) initial in

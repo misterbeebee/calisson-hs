@@ -65,7 +65,7 @@ recolor c cell dia = (getSub cell # fc (colorValue c) # opacity 0.7)  <> dia
 colorize :: Spec source -> QDTrans b
 colorize spec =
     -- manually lift pToC out of the 'where' clause, or else GHC will recompute it for every position!
-    let pToC = applyATiling spec in
+    let pToC = positionToColorMap (applyATiling spec) in
     modifyByName (modifyFn pToC) (cellPositionList spec)
     where
         modifyFn pToC position = recolor (getColor pToC (rows spec, maxCols spec) position)

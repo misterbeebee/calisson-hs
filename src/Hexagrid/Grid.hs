@@ -2,7 +2,7 @@
 module Hexagrid.Grid where
 -- Calisson's 3-region Hexagon grid
 import           Control.Arrow         (first, (&&&))
-import           Core.Math             (l1dist)
+import           Data.MapUtil          (Map, foldl1WithKey, getValues, mget)
 import           Data.Bits             (shiftL, shiftR, (.&.))
 import           Data.Color
 import           Data.Entropy
@@ -22,12 +22,6 @@ posToInt (r,c) = (shiftL (abs r) 16) + (shiftL (abs c) 2) + ((1 - signum r)) + (
 intToPos i = ((shiftR i 16) * (1 - (i .&. 0x2)),
               (shiftR (i .&. 0xfffb) 2) * (1 - shiftL (i .&. 0x1) 1))
 
-type PositionToColorMap = Map ColorCode
-
-data PositionToColor = PositionToColor {
-                    positionToColorMap           :: PositionToColorMap,
-                    positionToColorUsableHexagons :: IntSet.IntSet
-                    }
 
 -- FIXME: this is a total misnomer
 data Spec a = Spec {
@@ -43,10 +37,8 @@ data Spec a = Spec {
         cellPositions                :: Map Position,
         cellOrientations             :: Map TriangleOrientation,
         cellPositionList             :: [Position],
-        numCells                     :: !Int,
+        numCells                     :: !Int
         -- FIXME: should be in Tiling
-        homeCornerColors               :: PositionToColorMap,
-        homeColorization                 :: PositionToColor
         }
 
 -- compute and save expensive values
@@ -55,9 +47,7 @@ mkSpec radius shuffles entropy =
     let gridList = mkGridList radius rows in
     let cellPositionsWithOrientation = mkCellPositionsWithOrientation gridList in
     let cellPositions = fmap fst cellPositionsWithOrientation in
-    let homeColors = mkHomeColors radius :: PositionToColorMap in
     let cellPositionList = (getValues cellPositions) in
-    let pToCM = (mkHomeBaseColors homeColors cellPositionList) in
     Spec radius shuffles entropy rows
         (mkMaxCols radius)
         (mkMinCols radius)
@@ -67,17 +57,6 @@ mkSpec radius shuffles entropy =
         (fmap snd cellPositionsWithOrientation)
         cellPositionList
         (M.size cellPositions)
-        (mkHomeColors radius)
-        (PositionToColor pToCM (mkUsableHexagons pToCM))
-
-mkUsableHexagons :: PositionToColorMap -> IntSet.IntSet
-mkUsableHexagons pToCM = T.trace "FIXME: implement UsableHexagon set! " $
-    undefined
-    
-updateUsableHexagons ::  PositionToColor -> [Position] -> IntSet.IntSet
-updateUsableHexagons old changedPositions =
-    T.trace "FIXME: implement updateUsableHexagon ! " $
-    undefined -- fixme: do something with positionToColorUsableHexagons old
 
 mkRows :: Int -> Int
 mkRows radius = 4* radius - 1
@@ -119,31 +98,6 @@ mkCellPositionsWithOrientation gridList = M.fromList (zip [0..] positions)
                         (zip [0..] (fenceposts numCols))))  -- (col, colLabel)
                    gridList
 
--- map of positions to position's homebase colors
-mkHomeBaseColors :: PositionToColorMap -> [Position] -> PositionToColorMap
-mkHomeBaseColors homeColors cellPositionList =
-                            (M.fromList $ map (posToInt &&& getHomeBaseColor homeColors) $ cellPositionList)
-
-
-getHomeBaseColor :: PositionToColorMap -> Position -> ColorCode
-getHomeBaseColor homeColors cell@(row, col) =
-    let fcell = cell in
-    snd $ foldl1WithKey
-        (\(nearest, ncolor) corner ccolor ->
-            -- fixme ugh
-            if l1dist fcell (intToPos corner) < l1dist fcell (intToPos nearest)
-            then (corner, ccolor)
-            else (nearest, ncolor))
-        homeColors
-
--- map of home postions to colors
-mkHomeColors :: Int -> PositionToColorMap
-mkHomeColors radius = let s = fromIntegral radius in
-  M.fromList . map (first posToInt) $ [
-          ((-(4*s), 0) , Red)
-        , ((2*s, -2*s), Green) -- todo, use `rows` instead of `size` ?
-        , ((2*s, 2*s), Blue)
-        ]
 
 -- TODO: make better entropy generator (or interpreter) to jump directly to legit positions
 scriptPositionEntropy :: Entropy Int Int
