@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
 module Hexagrid.Grid where
 -- Calisson's 3-region Hexagon grid
@@ -5,10 +7,12 @@ import           Control.Arrow         (first, (|||), (&&&))
 import           Data.MapUtil          (Map, foldl1WithKey, getValues)
 import           Data.Bits             (shiftL, shiftR, (.&.))
 import           Data.Color
+import           Data.BinarySearch
 import           Data.Entropy
 import qualified Data.IntMap           as M
 import qualified Data.IntSet           as IntSet
 import qualified Debug.Trace           as T
+import Data.Monoid(Monoid, Sum, mempty, mappend)
 import           Hexagrid.TriangleCell
 
 type ColId = Int -- odd signed integer
@@ -136,5 +140,33 @@ prandPositionEntropy =
 pseudoRandom curr = (curr * 52237 + 317981) `mod` (shiftL 2 20)
 
 
+-- FIXME: refactor into modules
 
+newtype MinMax a = MinMax (a, a)
+    deriving Show
 
+instance Bounded Position where
+       minBound = (-99999999999, -99999999999)
+       maxBound = (99999999999, 99999999999)
+       
+instance Ord Position where
+    compare m1@(row1, col1) m2@(row2, col2) = 
+        case (compare row1 row2) of
+               LT -> LT
+               GT -> GT
+               EQ ->  case (compare col1 col2) of
+                   LT -> LT
+                   GT -> GT
+                   EQ -> EQ -- log this case?
+
+-- (min, max)
+instance (Show a, Bounded a, Ord a) => Monoid (MinMax a) where
+    mempty = error "MinMax has no mempty" undefined  -- this  should not be needed!
+    mappend m1@(MinMax (min1, max1)) m2@(MinMax (min2, max2)) =
+        if (max1 > min2) then
+            error ("invalid MinMax combination: not adjacent: " ++ show m1 ++ ", " ++ show m2) $
+            undefined
+        else
+            MinMax (min min1 min2, max max1 max2)
+
+type Measure = ([Position], Sum Int)
