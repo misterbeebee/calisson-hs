@@ -13,9 +13,8 @@ By symmetry (rotate to the left, or to the right), there are the same number of 
 
 The app serves the image as an SVG file.
 
+![tiling-6-1](https://cloud.githubusercontent.com/assets/656964/3594894/1d8e2e80-0ca9-11e4-9178-346cbfc6de92.png)
 
-![tiling-6-1](https://cloud.githubusercontent.com/assets/656964/3562699/dc28dd74-09ff-11e4-9ede-acaa34097f1e.png)
+![tiling-6-120](https://cloud.githubusercontent.com/assets/656964/3594892/1d5f4e8a-0ca9-11e4-9951-a6f4976fcb34.png)
 
-![tiling-6-1](https://cloud.githubusercontent.com/assets/656964/3564223/d87a5cda-0a76-11e4-8906-8d78c9a47857.png)
-
-![tiling-15](https://cloud.githubusercontent.com/assets/656964/3564273/6d78c134-0a7a-11e4-8501-ecb9662f951f.png)
+![tiling-10-500](https://cloud.githubusercontent.com/assets/656964/3594893/1d8d6ab8-0ca9-11e4-8203-513c89095e23.png)
