@@ -1,36 +1,59 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE TypeSynonymInstances      #-}
 module Hexagrid.Grid where
 -- Calisson's 3-region Hexagon grid
-import           Control.Arrow         (first, (|||), (&&&))
-import           Data.MapUtil          (Map, foldl1WithKey, getValues)
-import           Data.Bits             (shiftL, shiftR, (.&.))
-import           Data.Color
+import           Control.Arrow         (first, (&&&), (|||))
 import           Data.BinarySearch
+import           Data.Bits             (shiftL, shiftR, (.&.))
+import           Data.Monoid
+import           Data.Color
 import           Data.Entropy
+import           Data.MinMax
 import qualified Data.IntMap           as M
 import qualified Data.IntSet           as IntSet
+import           Data.MapUtil          (Map, foldl1WithKey, getValues)
 import qualified Debug.Trace           as T
-import Data.Monoid(Monoid, Sum, mempty, mappend)
 import           Hexagrid.TriangleCell
 
 type ColId = Int -- odd signed integer
 type RowId = Int -- even signed integer
 type RowOrColId = Int -- even signed integer
-type Position = (RowId, ColId)
 
+newtype Position = Position (RowId, ColId)
+  deriving (Eq, Show)
+    
+instance Bounded Position where
+       minBound = Position (-99999999999, -99999999999)
+       maxBound = Position (99999999999, 99999999999)
+
+instance Ord Position where
+    compare m1@(Position (row1, col1)) m2@(Position (row2, col2)) =
+        case (compare row1 row2) of
+               LT -> LT
+               GT -> GT
+               EQ ->  case (compare col1 col2) of
+                   LT -> LT
+                   GT -> GT
+                   EQ -> EQ -- log this case?
+
+      
+instance MinMaxable Position where
+    
+toTuple (Position (x,y)) = (x,y)
+
+  
 -- hacky int representation of Position
-posToInt (r,c) =
+posToInt (Position (r,c)) =
     let sr = signum r in
     let sc = signum c in
     -- extra multiplication by signum  makes 0 go to 0 sign bit
     let i = (shiftL (abs r) 16) + (shiftL (abs c) 2) + (sr*sr*(1 - sr)) + (shiftR (sc*sc*(1 - sc)) 1) in
     -- T.trace ("posToInt " ++ show (r,c) ++ " -> " ++ show i)
     i
-             
+
 intToPos i =
-    let p = ((shiftR i 16) * (1 - (i .&. 0x2)), (shiftR (i .&. 0xfffc) 2) * (1 - shiftL (i .&. 0x1) 1)) in
+    let p = Position ((shiftR i 16) * (1 - (i .&. 0x2)), (shiftR (i .&. 0xfffc) 2) * (1 - shiftL (i .&. 0x1) 1)) in
     -- T.trace ("intToPos " ++ show i ++ " -> " ++ show p)
     p
 
@@ -44,17 +67,17 @@ mget k m =
 
 -- FIXME: this is a total misnomer
 data Spec a = Spec {
-        gridRadius                   :: !Int,
+        gridRadius                         :: !Int,
         -- fixme doesn't belong in spec
-        specShuffles                 :: !Int, -- how many tile-shuffles to make
-        specPositionEntropy          :: Entropy Int a,
-        rows                         :: !Int,
-        maxCols                      :: !Int,
-        minCols                      :: !Int,
-        gridList                     :: ![(RowId, (TriangleOrientation, Int))],
+        specShuffles                       :: !Int, -- how many tile-shuffles to make
+        specPositionEntropy                :: Entropy Int a,
+        rows                               :: !Int,
+        maxCols                            :: !Int,
+        minCols                            :: !Int,
+        gridList                           :: ![(RowId, (TriangleOrientation, Int))],
         enumeratedPositionsWithOrientation :: Map (Position, TriangleOrientation), -- key  is [0...numCels]
-        orientations                 :: Map TriangleOrientation, -- key is posInt
-        numCells                     :: !Int
+        orientations                       :: Map TriangleOrientation, -- key is posInt
+        numCells                           :: !Int
         -- FIXME: should be in Tiling
         }
 
@@ -74,7 +97,7 @@ mkSpec radius shuffles entropy =
         (mkMaxCols radius)
         (mkMinCols radius)
         gridList
-        positionsWithOrientation 
+        positionsWithOrientation
         cellOrientations
         (M.size cellOrientations)
 
@@ -114,7 +137,7 @@ mkCellPositionsWithOrientation gridList = M.fromList (zip [0..] positions)
                    (\(rowLabel, (rowStartOrientation, numCols)) ->
                      (map (\(col, colLabel) ->
                           let orientation = toEnum $ (fromEnum rowStartOrientation + col) `mod` 2 in
-                          ((rowLabel, colLabel), orientation) )
+                          (Position (rowLabel, colLabel), orientation) )
                         (zip [0..] (fenceposts numCols))))  -- (col, colLabel)
                    gridList
 
@@ -139,34 +162,3 @@ prandPositionEntropy =
 
 pseudoRandom curr = (curr * 52237 + 317981) `mod` (shiftL 2 20)
 
-
--- FIXME: refactor into modules
-
-newtype MinMax a = MinMax (a, a)
-    deriving Show
-
-instance Bounded Position where
-       minBound = (-99999999999, -99999999999)
-       maxBound = (99999999999, 99999999999)
-       
-instance Ord Position where
-    compare m1@(row1, col1) m2@(row2, col2) = 
-        case (compare row1 row2) of
-               LT -> LT
-               GT -> GT
-               EQ ->  case (compare col1 col2) of
-                   LT -> LT
-                   GT -> GT
-                   EQ -> EQ -- log this case?
-
--- (min, max)
-instance (Show a, Bounded a, Ord a) => Monoid (MinMax a) where
-    mempty = error "MinMax has no mempty" undefined  -- this  should not be needed!
-    mappend m1@(MinMax (min1, max1)) m2@(MinMax (min2, max2)) =
-        if (max1 > min2) then
-            error ("invalid MinMax combination: not adjacent: " ++ show m1 ++ ", " ++ show m2) $
-            undefined
-        else
-            MinMax (min min1 min2, max max1 max2)
-
-type Measure = ([Position], Sum Int)

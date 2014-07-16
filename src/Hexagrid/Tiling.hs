@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 -- Algorithm for tiling the diagram with diamond calissons.
 module Hexagrid.Tiling where
 
@@ -10,10 +11,12 @@ import qualified Data.IntMap           as M
 import qualified Data.IntSet           as IntSet
 import           Data.List             (foldl')
 import           Data.List             (nub)
-import           Data.Maybe             (isJust)
+import           Data.Maybe             (isJust, fromJust)
+import           Data.Monoid (Sum(Sum), getSum)
 import           Data.MapUtil          (Map, foldl1WithKey, getValues)
 import qualified Debug.Trace           as T
 import           Diagrams.Prelude      (blue, green, red)
+import           Data.BinarySearch (Binary, insert, remove, search, get, emptyBinary, binarySize)
 import           Hexagrid.Grid
 import           Hexagrid.Hexacycle
 import           Hexagrid.Path
@@ -32,28 +35,78 @@ data Tiling = Tiling {
         positionToColorMap            :: PositionToColorMap,
         -- "upper left corners" of unit-hexagons populated by 3 different tiles, which can be rotated/mirrored
         -- to generate a different valid tiling
-        tilingUsableHexagons :: IntSet.IntSet
+        tilingUsableHexagons :: PositionSet
 }
 
+class PositionSetClass a where
+
+instance PositionSetClass IntSet.IntSet where
+instance PositionSetClass (Binary Position) where
+
+type PositionSet =
+    IntSet.IntSet
+    -- Binary Position
+    
+--fixme typeclass for this switcher and implementations
+getImpl intSet bsearch =
+    intSet
+    -- bseach
+
+asBinary = getImpl undefined id
+asIntSet = getImpl id undefined 
+   
+-- fixme O(n) traversal to get element
+-- Use a "Binary (Measure (MinMax Position))" to maintain a tree of these.
+-- getNth :: PositionSet -> Int -> Int
+getNth tilingUsableHexagons n =
+  getImpl
+    ((IntSet.toList tilingUsableHexagons) !! n)
+    (posToInt $ fromJust $ get (asBinary tilingUsableHexagons) n)
+  
+
+insertToPositionSet :: Int -> PositionSet-> PositionSet
+insertToPositionSet =
+  getImpl
+    IntSet.insert
+    (insert . intToPos)
+    
+removeFromPositionSet :: Int -> PositionSet-> PositionSet
+removeFromPositionSet =
+  getImpl
+    IntSet.delete
+    (remove . intToPos)
+    
+emptyPositionSet :: PositionSet
+emptyPositionSet  =
+  getImpl
+    IntSet.empty
+    (emptyBinary :: Binary Position)
+
+size = 
+  getImpl
+    IntSet.size
+    (getSum . binarySize)
+
+
+  
+        
 initialTiling spec =
     let pToCM = mkCanonicalTiling (mkCornerColors (gridRadius spec)) (orientations spec) in
     (Tiling pToCM (mkUsableHexagons (orientations spec) pToCM))
 
-mkUsableHexagons :: Map TriangleOrientation -> PositionToColorMap -> IntSet.IntSet
+mkUsableHexagons :: Map TriangleOrientation -> PositionToColorMap -> PositionSet
 mkUsableHexagons theOrientations pToCM = 
     T.trace "mkUsableHexagons"
-    IntSet.filter
+    foldl' (flip insertToPositionSet) emptyPositionSet $
+     filter
         (\posInt ->
             -- T.trace ("mkUsableHexagons: checking usability of hexagon: " ++ show (intToPos posInt)) $
             let orientation = mget posInt theOrientations in 
             isJust (getHexacycleIfUsable orientation (intToPos posInt) pToCM))
-        (M.keysSet pToCM)
+        (IntSet.toList $ M.keysSet pToCM)
 
 -- A Hexacycle's position is just the position of its top-left corner.
 type HexacyclePosition = Position
-
-type PositionSet = IntSet.IntSet
-type HexacyclePositionSet = PositionSet
 
 posToIntFlattenAndDedup :: [[Position]] -> [Int]
 posToIntFlattenAndDedup = IntSet.toList .
@@ -62,7 +115,7 @@ posToIntFlattenAndDedup = IntSet.toList .
                                 poss)
            IntSet.empty 
 
-updateUsableHexagons ::  Map TriangleOrientation -> PositionToColorMap -> HexacyclePositionSet -> [HexacyclePosition] -> HexacyclePositionSet
+updateUsableHexagons ::  Map TriangleOrientation -> PositionToColorMap -> PositionSet -> [HexacyclePosition] -> PositionSet
 updateUsableHexagons theOrientations newColorization oldUsableHexagons changedPositions =
     let getOverlappingHexacycles pos = overlappingHexacycles pos (mpmget pos theOrientations)  newColorization in
     let overlappingHexacylePosInts = posToIntFlattenAndDedup (map getOverlappingHexacycles changedPositions) in
@@ -73,10 +126,10 @@ updateUsableHexagons theOrientations newColorization oldUsableHexagons changedPo
           let update = case getHexacycleIfUsable (mget posInt theOrientations) (intToPos posInt) newColorization of
                          Nothing ->
                              -- T.trace ("remove unusable hexagon: " ++ show (intToPos posInt)) $
-                             IntSet.delete 
+                             removeFromPositionSet
                          Just _ ->
                              -- T.trace ("add usable hexagon: " ++ show (intToPos posInt)) $
-                             IntSet.insert
+                             insertToPositionSet
           in
           update posInt oldUsableHexagons
 
@@ -106,12 +159,12 @@ mkCanonicalTiling cornerColors positionToDummy =
 
 -- generate map of positions to color of positions' home corner
 getNearestCornerColor :: PositionToColorMap -> Position -> ColorCode
-getNearestCornerColor cornerColors cell@(row, col) =
-    let fcell = cell in
+getNearestCornerColor cornerColors cell@(Position (row, col)) =
+    let fcell = (row,col) in
     snd $ foldl1WithKey
         (\(nearest, ncolor) corner ccolor ->
             -- fixme ugh
-            if l1dist fcell (intToPos corner) < l1dist fcell (intToPos nearest)
+            if l1dist fcell (toTuple $ intToPos corner) < l1dist fcell (toTuple $ intToPos nearest)
             then (corner, ccolor)
             else (nearest, ncolor))
         cornerColors
@@ -120,9 +173,9 @@ getNearestCornerColor cornerColors cell@(row, col) =
 mkCornerColors :: Int -> PositionToColorMap
 mkCornerColors radius = let s = fromIntegral radius in
   M.fromList . map (first posToInt) $ [
-          ((-(4*s), 0) , Red)
-        , ((2*s, -2*s), Green) -- todo, use `rows` instead of `size` ?
-        , ((2*s, 2*s), Blue)
+          (Position (-(4*s), 0) , Red)
+        , (Position (2*s, -2*s), Green) -- todo, use `rows` instead of `size` ?
+        , (Position (2*s, 2*s), Blue)
         ]
 
 getColor :: PositionToColorMap -> Position  -> ColorCode
@@ -151,7 +204,7 @@ copyColorFrom sourcePToC (srcPos, destPos) destPToC = mpminsert destPos (mpmget 
 -- Build an index at start, and update it (as part of PositionToColor)
 shuffleOnce :: Spec source -> Int -> Tiling -> Maybe Tiling
 shuffleOnce spec entropyForCellIndex tiling =
-    let numUsableHexagons = (IntSet.size (tilingUsableHexagons tiling)) in
+    let numUsableHexagons = (size (tilingUsableHexagons tiling)) in
     case numUsableHexagons of
       0 ->
         T.trace ("ERROR!: No usable hexagons to shuffle colors!") $
@@ -160,8 +213,7 @@ shuffleOnce spec entropyForCellIndex tiling =
         let theOrientations = orientations spec in
         -- todo: pos<->int conversion happens and roundtrip. better to normalize on 'int', for performance
         let hexagonIndex = entropyForCellIndex `mod` numUsableHexagons in
-        -- fixme O(n) traversal to get element
-        let posInt = IntSet.toList (tilingUsableHexagons tiling) !! hexagonIndex in
+        let posInt = getNth (tilingUsableHexagons tiling) hexagonIndex in
         let pos = intToPos posInt in
         -- T.trace ("shuffleOnce: " ++ show cellIndex) $
         let orientation = mget posInt theOrientations in
@@ -218,3 +270,5 @@ wellCycledColors' n (x1:x2:xs) parity =
 
 isValidPosition :: Map a -> Position -> Bool
 isValidPosition validPositionSet p = isJust $ M.lookup (posToInt p) validPositionSet
+
+

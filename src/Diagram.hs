@@ -51,7 +51,7 @@ diagram spec =
                             triangle 1
                               # named (toName pos)
                               # (rotateBy rotation)
-                              # lineWidth 0 # (setColor pToC pos))
+                              # lineWidth 0 # (setColor pToC (Position pos)))
                     (fenceposts cols) [0..]
        ) theGridList
   where

@@ -59,8 +59,9 @@ walk' :: Position -> [Step] -> Position
 walk' = foldl' move 
 
 move :: Position -> Step -> Position
-move pos@(r,c) step =
+move pos@(Position (r,c)) step =
     let sign = toTrit (stepSign step) in
+    Position $
     case stepUnitVector step of
     -- these formulas are weird, because they are
     -- (a) on the rectangular coordinate grud
