@@ -2,7 +2,8 @@ module Data.Color where
 
 import           Data.Colour.CIE
 import           Data.Colour.CIE.Illuminant (d65)
-import           Diagrams.Prelude           (blue, green, red)
+import           Data.Colour.SRGB(sRGB)
+import           Diagrams.Prelude(blue, green, red)
 
 type ColorValue = Colour Double
 
@@ -10,9 +11,9 @@ type ColorValue = Colour Double
 data ColorCode = Red | Green | Blue
     deriving (Eq, Ord, Show)
 
-colorValue Red = red
-colorValue Green = green
-colorValue Blue = blue
+colorValue Red = sRGB  0.8 0.2 0.2 
+colorValue Green = sRGB  0.2 0.8 0.2
+colorValue Blue =  sRGB  0.2 0.2 0.8
 
 -- medium lightness CIELAB color
 cie = cieLAB d65 50

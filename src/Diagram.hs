@@ -45,13 +45,14 @@ diagram spec =
                 -- add name for indexing
                 -- add label as visual aid
                 zipWith (\col colIndex -> 
-                            let pos = (row,col) in
+                            let pos = Position (row,col) in
                             let rotation = (1/4) * bitToSign (fromEnum rowStartOrientation + colIndex) in
+                            let color = colorValue (getColor pToC pos) in
                             mkLabel pos <>
                             triangle 1
-                              # named (toName pos)
+                              # named (toName $ toTuple pos)
                               # (rotateBy rotation)
-                              # lineWidth 0 # (setColor pToC (Position pos)))
+                              # lineColor color # fillColor color)
                     (fenceposts cols) [0..]
        ) theGridList
   where
@@ -59,10 +60,6 @@ diagram spec =
 
 mkLabel pos = scale 0.2 . opacity labelOpacity text $ show pos
 
-setColor pToC pos =
-    let colorCode = (getColor pToC pos) in
-    fc (colorValue colorCode) # opacity 0.7
- 
 bitToSign x = case x `mod` 2 of
   0 -> 1
   1 -> -1
