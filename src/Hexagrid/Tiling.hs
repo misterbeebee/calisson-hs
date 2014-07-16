@@ -204,7 +204,7 @@ copyColorFrom sourcePToC (srcPos, destPos) destPToC = mpminsert destPos (mpmget 
 -- Build an index at start, and update it (as part of PositionToColor)
 shuffleOnce :: Spec source -> Int -> Tiling -> Maybe Tiling
 shuffleOnce spec entropyForCellIndex tiling =
-    let numUsableHexagons = (size (tilingUsableHexagons tiling)) in
+    let numUsableHexagons = size (tilingUsableHexagons tiling) in
     case numUsableHexagons of
       0 ->
         T.trace ("ERROR!: No usable hexagons to shuffle colors!") $

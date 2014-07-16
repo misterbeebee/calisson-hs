@@ -21,11 +21,11 @@ thePositionEntropy = prandPositionEntropy
 safeRadius :: Input -> Int
 safeRadius input =
     let safe = clampToRange (1,maxRadius) . fromMaybe 6 . inputRadius $ input in
-    T.trace ("input radius " ++ show (inputRadius input) ++ " -> " ++ show safe) $
+    T.trace ("input radius " ++ show (inputRadius input) ++ " -> " ++ show safe) 
         safe
 
 safeShuffles :: Input -> Int
 safeShuffles input =
     let safe = clampToRange (0,maxShuffles) . fromMaybe 60 . inputShuffles $ input in
-    T.trace ("input shuffles " ++ show (inputShuffles input) ++ " -> " ++ show safe) $
+    T.trace ("input shuffles " ++ show (inputShuffles input) ++ " -> " ++ show safe)
     safe

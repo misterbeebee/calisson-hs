@@ -28,7 +28,7 @@ withEntropyAndRetry f (a,e) =
             (a, nextEntropy e)
         keepTrying triesLeft e f a =
           -- T.trace ("keepTrying: " ++ show e) $
-          let bit = (currEntropyBit e) in
+          let bit = currEntropyBit e in
           case f bit a of
             Nothing ->
               -- should never happen in Calissons, now that we are maintaing hexagon set

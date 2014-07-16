@@ -29,10 +29,10 @@ instance Bounded Position where
 
 instance Ord Position where
     compare m1@(Position (row1, col1)) m2@(Position (row2, col2)) =
-        case (compare row1 row2) of
+        case compare row1 row2 of
                LT -> LT
                GT -> GT
-               EQ ->  case (compare col1 col2) of
+               EQ ->  case compare col1 col2 of
                    LT -> LT
                    GT -> GT
                    EQ -> EQ -- log this case?

@@ -52,7 +52,7 @@ get (Binary (Sum size) _ node (lt, gt)) needle =
                    Just (Binary (Sum ltSize) _ _ _) -> ltSize
     in
     let rightNeedle = needle - ltSize in
-    let comp = (compare rightNeedle 0) in
+    let comp = compare rightNeedle 0 in
     let (subNeedle, subTree) = case comp of
                               LT -> (needle, lt)
                               GT -> (rightNeedle, gt)
@@ -77,13 +77,13 @@ leaf :: (MinMaxable n) => TreePath n -> Maybe n
 leaf (TreePath original@(Binary s r mNode st) None) =
     case mNode of
         Nothing ->
-            case original == mempty of
-                True -> Nothing
-                False -> error ("Corrupt mempty TreePath: " ++ show original) undefined
+            if original == mempty 
+            then Nothing
+            else error ("Corrupt mempty TreePath: " ++ show original) undefined
         Just node ->
-            case original == singleton node of
-                True -> Just node
-                False -> error ("Corrupt singleton TreePath: " ++ show original) undefined
+            if original == singleton node
+            then Just node
+            else error ("Corrupt singleton TreePath: " ++ show original) undefined
 leaf tb@(TreePath original@(Binary _ _ _ (lt, rt)) branch) =
     case branch of 
         LeftBranch tb -> leaf tb
@@ -92,7 +92,7 @@ leaf tb@(TreePath original@(Binary _ _ _ (lt, rt)) branch) =
 
 search :: MinMaxable n => n -> Binary n -> Maybe n
 search node tree = 
-      (searchPath Find node tree) 
+      searchPath Find node tree
       >>= (indexedTreeNode . treePathOriginal)
 
 insert :: MinMaxable n => n -> Binary n -> Binary n
@@ -103,7 +103,7 @@ remove = adjust Remove
 
 adjust :: MinMaxable n => Operation -> n -> Binary n -> Binary n
 adjust operation node tree =
-  let maybePath = (searchPath operation node tree) in 
+  let maybePath = searchPath operation node tree in 
   case maybePath of 
       Just path -> build path
       Nothing -> tree
@@ -139,7 +139,7 @@ searchPath operation needle t@(Binary _ _ maybeNode (Nothing, Nothing)) =
                     Remove -> Just (TreePath mempty None)
                     Insert -> Just (TreePath (singleton needle) None)
             Just node ->
-                let comp = (compare needle node) in
+                let comp = compare needle node in
                 case comp of
                   EQ ->
                     case operation of
@@ -160,7 +160,7 @@ searchPath operation needle t@(Binary _ _ node (lt, gt)) =
                    Just (Binary _ ltRange _ _) -> ltRange
     in
     let (MinMax (_, ltMax)) = ltRange in
-    let comp = (compare needle ltMax) in
+    let comp = compare needle ltMax in
     let (branch, subTree) = case comp of
                               LT -> (LeftBranch, lt)
                               EQ -> (LeftBranch, lt) -- since a range *includes* its maximum

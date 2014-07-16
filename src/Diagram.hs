@@ -51,7 +51,7 @@ diagram spec =
                             mkLabel pos <>
                             triangle 1
                               # named (toName $ toTuple pos)
-                              # (rotateBy rotation)
+                              # rotateBy rotation
                               # lineColor color # fillColor color)
                     (fenceposts cols) [0..]
        ) theGridList
