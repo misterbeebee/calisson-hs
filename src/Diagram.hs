@@ -1,37 +1,47 @@
 {-# LANGUAGE ConstraintKinds  #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes       #-}
-module Diagram(diagram) where
+module Diagram(dia, svg) where
 
-import           Control.Arrow             ((&&&))
-import           Core.Math                 (cartesianProduct, l1dist, (**.),
-                                            (/.))
-import           Data.Color                (ColorCode, cie, colorScale, colorValue)
+import           Control.Arrow                ((&&&))
+import           Core.Math                    (cartesianProduct, l1dist, (**.),
+                                               (/.))
+import qualified Data.ByteString              as Strict
+import qualified Data.ByteString.Lazy         as Lazy
+import           Data.Color                   (ColorCode, cie, colorScale,
+                                               colorValue)
 import           Data.Colour.RGBSpace
 import           Data.Colour.SRGB.Linear
 import           Data.Default
 import           Data.Entropy
-import           Data.List
 import qualified Data.IntMap                  as M
-import           Data.MapUtil              (foldl1WithKey)
+import           Data.List
+import           Data.MapUtil                 (foldl1WithKey)
 import           DiagramLib
 import           Diagrams.Backend.SVG
 import           Diagrams.Color.HSV
 import           Diagrams.Core.Style
 import           Diagrams.Prelude
-import           Diagrams.TwoD.Align       (snugR)
+import           Diagrams.TwoD.Align          (snugR)
 import           Diagrams.TwoD.Combinators
-import           Diagrams.TwoD.Shapes      (triangle)
-import           Diagrams.TwoD.Text        (Text)
-import           Diagrams.TwoD.Transform   (rotate, rotateBy)
+import           Diagrams.TwoD.Shapes         (triangle)
+import           Diagrams.TwoD.Text           (Text)
+import           Diagrams.TwoD.Transform      (rotate, rotateBy)
 import           Hexagrid.Grid
 import           Hexagrid.Tiling
+import           Text.Blaze.Svg.Renderer.Utf8
 
-import qualified Debug.Trace               as DTrace
+import qualified Debug.Trace                  as DTrace
 
 -- fixme move to Config
 -- turn down opacity when not debugging
-labelOpacity = 0.0 
+labelOpacity = 0.0
+
+dia :: Spec source -> Diagram SVG R2
+dia = diagram
+
+svg :: Diagram SVG R2 -> Strict.ByteString
+svg = Strict.concat . Lazy.toChunks . renderSvg . renderDia SVG (SVGOptions (Width 600) Nothing)
 
 -- Needs Renderable Text and Renderable Path, so just hardcode SVG
 diagram :: Spec source -> QD SVG
@@ -44,7 +54,7 @@ diagram spec =
        (\(row, (rowStartOrientation, cols)) -> hcatSnug $
                 -- add name for indexing
                 -- add label as visual aid
-                zipWith (\col colIndex -> 
+                zipWith (\col colIndex ->
                             let pos = Position (row,col) in
                             let rotation = (1/4) * bitToSign (fromEnum rowStartOrientation + colIndex) in
                             let color = colorValue (getColor pToC pos) in

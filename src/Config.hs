@@ -2,30 +2,29 @@ module Config where
 
 import Core.Math(clampToRange)
 import qualified Debug.Trace as T
-import Data.Maybe(fromMaybe)
 import Hexagrid.Grid
 
 --- input, defaults, and limits
 
-maxShuffles = 3000
-maxRadius = 15
+maxShuffles = 2000
+maxRadius = 13
 
 data Input = Input {
-    inputRadius :: Maybe Int,
-    inputShuffles :: Maybe Int
+    inputRadius :: Int,
+    inputShuffles :: Int
 }
 
 thePositionEntropy = prandPositionEntropy
 -- thePositionEntropy = scriptPositionEntropy
 
-safeRadius :: Input -> Int
+safeRadius :: Int -> Int
 safeRadius input =
-    let safe = clampToRange (1,maxRadius) . fromMaybe 6 . inputRadius $ input in
-    T.trace ("input radius " ++ show (inputRadius input) ++ " -> " ++ show safe) 
+    let safe = clampToRange (1,maxRadius) input in
+    T.trace ("input radius " ++ show input ++ " -> " ++ show safe) 
         safe
 
-safeShuffles :: Input -> Int
+safeShuffles :: Int -> Int
 safeShuffles input =
-    let safe = clampToRange (0,maxShuffles) . fromMaybe 60 . inputShuffles $ input in
-    T.trace ("input shuffles " ++ show (inputShuffles input) ++ " -> " ++ show safe)
+    let safe = clampToRange (0,maxShuffles) input in
+    T.trace ("input shuffles " ++ show input ++ " -> " ++ show safe)
     safe

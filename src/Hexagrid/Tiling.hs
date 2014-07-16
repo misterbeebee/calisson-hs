@@ -87,16 +87,13 @@ size =
     IntSet.size
     (getSum . binarySize)
 
-
-  
-        
 initialTiling spec =
     let pToCM = mkCanonicalTiling (mkCornerColors (gridRadius spec)) (orientations spec) in
     (Tiling pToCM (mkUsableHexagons (orientations spec) pToCM))
 
 mkUsableHexagons :: Map TriangleOrientation -> PositionToColorMap -> PositionSet
 mkUsableHexagons theOrientations pToCM = 
-    T.trace "mkUsableHexagons"
+    -- T.trace "mkUsableHexagons"
     foldl' (flip insertToPositionSet) emptyPositionSet $
      filter
         (\posInt ->
@@ -202,7 +199,7 @@ copyColorFrom sourcePToC (srcPos, destPos) destPToC = mpminsert destPos (mpmget 
 -- so only PointingLeft triangles are valid
 -- FIXME! Very few grid positions are valid -- but they are predictable.
 -- Build an index at start, and update it (as part of PositionToColor)
-shuffleOnce :: Spec source -> Int -> Tiling -> Maybe Tiling
+shuffleOnce :: Spec source -> Int -> Tiling -> Maybe (Maybe Tiling)
 shuffleOnce spec entropyForCellIndex tiling =
     let numUsableHexagons = size (tilingUsableHexagons tiling) in
     case numUsableHexagons of
@@ -226,10 +223,10 @@ shuffleOnce spec entropyForCellIndex tiling =
             let hexagonOpposites = take 6 (zip hexacycle (drop 3 hexacycle)) in
             let prevUsableHexagons = (tilingUsableHexagons tiling) in
             let newPToCM = (foldl' (flip ($)) pToCM (map (copyColorFrom pToCM) hexagonOpposites)) in
-            Just $ Tiling newPToCM (updateUsableHexagons theOrientations newPToCM prevUsableHexagons hexagonPositions)
+            Just $ Just $ Tiling newPToCM (updateUsableHexagons theOrientations newPToCM prevUsableHexagons hexagonPositions)
           Nothing ->
               T.trace ("SHOULD NEVER HAPPEN: unsable hexacycle in hexacycle-cache: " ++ show pos) $
-              Nothing
+              Just Nothing
 
 getHexacycleIfUsable :: TriangleOrientation -> HexacyclePosition -> PositionToColorMap -> Maybe [Position]
 getHexacycleIfUsable orientation pos pToC =

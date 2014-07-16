@@ -10,30 +10,32 @@ instance Show bit => Show (Entropy bit source) where
 currEntropyBit (Entropy ev curr _) = curr ev
 nextEntropy (Entropy ev curr next) = Entropy (next ev) curr next
 
-maxTries = 50
+maxTries = 5
 
 -- Feeds a stream of "random/arbitrary" data to a function (that can fail)
 -- retries function (with new entropic value) if it fails
 -- todo use state/random/Gen monad
 -- fixme stupid name
--- WARNING: can loop forever!
 -- Show is just for debugging
-withEntropyAndRetry :: Show bit => (bit -> a -> Maybe a) -> (a, Entropy bit e) -> (a, Entropy bit e)
+withEntropyAndRetry :: Show bit => (bit -> a -> Maybe (Maybe a)) -> (a, Entropy bit e) -> (a, Entropy bit e)
 withEntropyAndRetry f (a,e) =
     -- T.trace ("withEntropyAndRetry: ") $
     keepTrying maxTries e f a
     where
         keepTrying 0 e f a =
-            T.trace ("keepTrying retries expired; e: " ++ show e)
+            -- T.trace ("keepTrying retries expired; e: " ++ show e)
             (a, nextEntropy e)
         keepTrying triesLeft e f a =
           -- T.trace ("keepTrying: " ++ show e) $
           let bit = currEntropyBit e in
           case f bit a of
             Nothing ->
+                -- T.trace ("Further retries will continue to fail, skipping: " ++ show triesLeft)
+                (a, nextEntropy e)
+            Just Nothing ->
               -- should never happen in Calissons, now that we are maintaing hexagon set
-              T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " with entropy: " ++ show bit)
+              -- T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " with entropy: " ++ show bit)
               keepTrying  (pred triesLeft) (nextEntropy e) f a
-            Just fresult -> 
+            Just (Just fresult)-> 
               -- T.trace ("attempt " ++ show (maxTries - triesLeft) ++ " succeeded" )
               (fresult, nextEntropy e)
