@@ -1,4 +1,4 @@
-module-template: ! 'module MODULE_NAME where
+module-template: ! 'module MODULE_NAME() where
 
 '
 extensions: {}

@@ -31,12 +31,14 @@ mpminsert k v posIntMap =  M.insert (posToInt k) v posIntMap
 type PositionToColorMap = Map ColorCode
 
 data Tiling = Tiling {
+        tilingRadius :: Int, -- easier to store than recompute when needed.
         -- colors induced by tiling (the pairs of triangles in a calisson is not explicitly stored)
         positionToColorMap            :: PositionToColorMap,
         -- "upper left corners" of unit-hexagons populated by 3 different tiles, which can be rotated/mirrored
         -- to generate a different valid tiling
         tilingUsableHexagons :: PositionSet
-}
+} deriving (Show, Read)
+
 
 class PositionSetClass a where
 
@@ -88,8 +90,9 @@ size =
     (getSum . binarySize)
 
 initialTiling spec =
-    let pToCM = mkCanonicalTiling (mkCornerColors (gridRadius spec)) (orientations spec) in
-    (Tiling pToCM (mkUsableHexagons (orientations spec) pToCM))
+    let radius = (gridRadius spec) in
+    let pToCM = mkCanonicalTiling (mkCornerColors radius ) (orientations spec) in
+    (Tiling radius pToCM (mkUsableHexagons (orientations spec) pToCM))
 
 mkUsableHexagons :: Map TriangleOrientation -> PositionToColorMap -> PositionSet
 mkUsableHexagons theOrientations pToCM = 
@@ -178,8 +181,11 @@ mkCornerColors radius = let s = fromIntegral radius in
 getColor :: PositionToColorMap -> Position  -> ColorCode
 getColor pToC position = mpmget position pToC
 
-applyATiling :: Spec source -> Tiling
-applyATiling spec = shuffleColors spec $ initialTiling spec
+applyATiling :: Spec source -> Maybe Tiling -> Tiling
+applyATiling spec mInitialTiling = shuffleColors spec $
+        case mInitialTiling of
+            Nothing -> initialTiling spec
+            Just tiling -> tiling
 
 -- Computes a position's color by applying a shuffle function to the "positionColors" scheme
 shuffleColors:: Spec source -> Tiling -> Tiling
@@ -223,7 +229,7 @@ shuffleOnce spec entropyForCellIndex tiling =
             let hexagonOpposites = take 6 (zip hexacycle (drop 3 hexacycle)) in
             let prevUsableHexagons = (tilingUsableHexagons tiling) in
             let newPToCM = (foldl' (flip ($)) pToCM (map (copyColorFrom pToCM) hexagonOpposites)) in
-            Just $ Just $ Tiling newPToCM (updateUsableHexagons theOrientations newPToCM prevUsableHexagons hexagonPositions)
+            Just $ Just $ Tiling (gridRadius spec) newPToCM (updateUsableHexagons theOrientations newPToCM prevUsableHexagons hexagonPositions)
           Nothing ->
               T.trace ("SHOULD NEVER HAPPEN: unsable hexacycle in hexacycle-cache: " ++ show pos) $
               Just Nothing

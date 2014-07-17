@@ -9,7 +9,7 @@ type ColorValue = Colour Double
 
 -- More-efficient symbols, for faster comparison
 data ColorCode = Red | Green | Blue
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Read)
 
 colorValue Red = sRGB  0.8 0.2 0.2 
 colorValue Green = sRGB  0.2 0.8 0.2

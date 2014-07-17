@@ -9,11 +9,6 @@ import Hexagrid.Grid
 maxShuffles = 2000
 maxRadius = 13
 
-data Input = Input {
-    inputRadius :: Int,
-    inputShuffles :: Int
-}
-
 thePositionEntropy = prandPositionEntropy
 -- thePositionEntropy = scriptPositionEntropy
 

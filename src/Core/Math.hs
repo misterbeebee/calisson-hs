@@ -1,6 +1,7 @@
 module Core.Math where
 
 import           Control.Applicative
+
 import           Data.Bifunctor
 
 (/.) :: (Integral a, Fractional b) => a -> a -> b

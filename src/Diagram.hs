@@ -37,17 +37,19 @@ import qualified Debug.Trace                  as DTrace
 -- turn down opacity when not debugging
 labelOpacity = 0.0
 
-dia :: Spec source -> Diagram SVG R2
+dia :: Spec source -> Maybe Tiling -> (Tiling, QD SVG)
 dia = diagram
 
 svg :: Diagram SVG R2 -> Strict.ByteString
 svg = Strict.concat . Lazy.toChunks . renderSvg . renderDia SVG (SVGOptions (Width 600) Nothing)
 
 -- Needs Renderable Text and Renderable Path, so just hardcode SVG
-diagram :: Spec source -> QD SVG
-diagram spec =
-    let pToC = positionToColorMap (applyATiling spec) in
+diagram :: Spec source -> Maybe Tiling -> (Tiling, QD SVG)
+diagram spec initialTiling =
+    let tiling = applyATiling spec initialTiling in
+    let pToC = positionToColorMap tiling in
     DTrace.trace "Building diagram" $
+    (, ) tiling $
     myframe .
     vcatSnug $
     map
