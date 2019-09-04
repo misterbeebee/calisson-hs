@@ -16,6 +16,7 @@ import           Data.Default
 import           Data.Entropy
 import qualified Data.IntMap                  as M
 import           Data.List
+import qualified Data.Text as T
 import           Data.MapUtil                 (foldl1WithKey)
 import           DiagramLib
 import           Diagrams.Backend.SVG
@@ -27,9 +28,9 @@ import           Diagrams.TwoD.Combinators
 import           Diagrams.TwoD.Shapes         (triangle)
 import           Diagrams.TwoD.Text           (Text)
 import           Diagrams.TwoD.Transform      (rotate, rotateBy)
+import           Graphics.Svg.Core
 import           Hexagrid.Grid
 import           Hexagrid.Tiling
-import           Text.Blaze.Svg.Renderer.Utf8
 
 import qualified Debug.Trace                  as DTrace
 
@@ -40,8 +41,8 @@ labelOpacity = 0.0
 dia :: Spec source -> Maybe Tiling -> (Tiling, QD SVG)
 dia = diagram
 
-svg :: Diagram SVG R2 -> Strict.ByteString
-svg = Strict.concat . Lazy.toChunks . renderSvg . renderDia SVG (SVGOptions (Width 600) Nothing)
+svg :: Diagram SVG -> Strict.ByteString
+svg = Strict.concat . Lazy.toChunks . renderBS . renderDia SVG (SVGOptions (mkWidth 600) Nothing  (T.pack "") [] True)
 
 -- Needs Renderable Text and Renderable Path, so just hardcode SVG
 diagram :: Spec source -> Maybe Tiling -> (Tiling, QD SVG)

@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Data.BinarySearch where
 
-import           Data.Monoid (Monoid, Sum(Sum), mappend, mempty)
+import Data.Monoid (Monoid, Sum(Sum), mappend, mempty)
 import Data.MinMax
 import Data.Maybe(isJust, fromJust)
 import Control.Monad(liftM)
@@ -19,6 +19,15 @@ data Binary n = Binary {
     indexTreeSubtree :: (Maybe (Binary n), Maybe (Binary n))
 } deriving (Eq, Show)
 
+instance MinMaxable n => Semigroup (Binary n) where
+  (<>) b1@(Binary i1 r1 n1 _)
+       b2@(Binary i2 r2 m2 _) =
+      Binary
+        (i1 `mappend` i2)
+        (r1 `mappend` r2)
+        Nothing
+        (Just b1, Just b2)
+
 instance MinMaxable n => Monoid (Binary n) where
     mempty =
       Binary
@@ -27,13 +36,6 @@ instance MinMaxable n => Monoid (Binary n) where
         Nothing
         (Nothing, Nothing)
         
-    mappend b1@(Binary i1 r1 n1 _)
-            b2@(Binary i2 r2 m2 _) =
-      Binary
-        (i1 `mappend` i2)
-        (r1 `mappend` r2)
-        Nothing
-        (Just b1, Just b2)
 
 singleton :: n -> Binary n 
 singleton node =

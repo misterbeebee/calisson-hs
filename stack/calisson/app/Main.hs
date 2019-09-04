@@ -6,6 +6,7 @@
 {-# LANGUAGE QuasiQuotes                #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE ViewPatterns               #-}
 import           Config                       (safeRadius, safeShuffles,
                                                thePositionEntropy)
 import           Control.Applicative          ((<$>), (<*>))
@@ -15,6 +16,7 @@ import           Control.Monad.Trans.Resource (runResourceT)
 import           Data.Maybe                   (fromMaybe)
 import           Data.Text                    (pack)
 import           Data.Text                    (Text, pack, unpack)
+import           Database.Persist.Class
 import           Database.Persist
 import           Database.Persist.Sqlite
 import           Database.Persist.TH
@@ -37,23 +39,17 @@ DBTiling
 -- create our initial pool, and each time we need to perform an action we check
 -- out a single connection from the pool.
 
-data App = App ConnectionPool
-
-openConnectionCount :: Int
-openConnectionCount = 10
+data App = App SqlBackend
 
 main :: IO ()
 main = DTrace.trace "main" $
-  withSqlitePool ":memory:" openConnectionCount $ \pool ->
-    do
-     ((runNoLoggingT . runResourceT . flip runSqlPool pool)
-      $ do
-          runMigration migrateAll)
-     warpEnv (App pool) -- warpEnv uses default middleware, including gzip compression
+  runStderrLoggingT $ withSqliteConn ":memory:" $ \sqlbackend -> do
+     runSqlConn (runMigration migrateAll) sqlbackend
+     liftIO $ warp 3000 (App sqlbackend) -- warpEnv uses default middleware, including gzip compression
 
 instance Yesod App where
-    shouldLog (App pool) src level =
-        True -- good for development
+    shouldLogIO (App pool) src level =
+        return True -- good for development
         -- level == LevelWarn || level == LevelError -- good for production
 
 -- boilerplate to make getImageR's type signature support FormMessage
@@ -63,11 +59,11 @@ instance RenderMessage App FormMessage where
 -- Now we need to define a YesodPersist instance, which will keep track of
 -- which backend we're using and how to run an action.
 instance YesodPersist App where
-    type YesodPersistBackend App = SqlPersistT
+    type YesodPersistBackend App = SqlBackend 
 
     runDB action = do
-      App pool <- getYesod
-      runSqlPool action pool
+      App sqlBackend <- getYesod
+      runSqlConn action sqlBackend
 
 
 mkYesod "App" [parseRoutes|
@@ -122,7 +118,7 @@ runParseForm inputForm = do
   let radius = (safeRadius $ get defaultRadius pageInputRadius)
   return $ Input radius
     (safeShuffles $ get (defaultShuffles radius) pageInputShuffles)
-    (fmap (Key . PersistInt64 . fromIntegral) (pageInputContinue formInput))
+    (fmap (DBTilingKey . fromIntegral) (pageInputContinue formInput))
 
 getImageR :: HandlerT App IO TypedContent
 getImageR =
@@ -157,7 +153,7 @@ getPageR :: Handler Html
 getPageR = do
     -- let (Input radius shuffles continue) = defaultInput
     (Input radius shuffles continue) <- runParseForm inputForm
-    let asInt (Key (PersistInt64 x)) = toInteger x
+    let asInt (DBTilingKey x) = toInteger x
     tilingId <- liftM fst $ makeImage (Input radius shuffles continue)
     defaultLayout $ do
       toWidget [lucius|
